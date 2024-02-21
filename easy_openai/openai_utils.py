@@ -43,6 +43,7 @@ cache_dir.mkdir(exist_ok=True)
 cache_base_path = None
 cache_base = None
 
+print("Default cache dir:", cache_dir)
 
 def get_prompt_uids(prompt: str) -> str:
     return hashlib.sha256(prompt.encode()).hexdigest()
@@ -322,11 +323,11 @@ def _openai_completion_helper(
                         client_kwargs["organization"] = organization = random.choice(
                             [o for o in openai_organization_ids if o != openai.organization]
                         )
-                        client = OpenAI(**client_kwargs)
+                        client = CLIENT_CLASS(**client_kwargs)
                         logging.info(f"Switching OAI organization.")
                     if openai_api_keys is not None and len(openai_api_keys) > 1:
                         client_kwargs["api_key"] = random.choice([o for o in openai_api_keys if o != openai.api_key])
-                        client = OpenAI(**client_kwargs)
+                        client = CLIENT_CLASS(**client_kwargs)
                         logging.info(f"Switching OAI API key.")
                     logging.info(f"Sleeping {sleep_time} before retrying to call openai API...")
                     time.sleep(sleep_time)  # Annoying rate limit on requests.
