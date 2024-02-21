@@ -1,4 +1,4 @@
-# OpenAI_API_utils
+# Easy-OpenAI
 
 ## Installation
 ```bash
