@@ -38,7 +38,7 @@ def get_cache_dir():
         os.makedirs(cache_dir)
     return cache_dir
 
-cache_dir = os.path.join(get_cache_dir(), "cache")
+cache_dir = Path(get_cache_dir()) / "cache"
 cache_dir.mkdir(exist_ok=True)
 cache_base_path = None
 cache_base = None
