@@ -116,7 +116,10 @@ def openai_completions(
         isinstance(prompts[0], str) or (isinstance(prompts[0], list) and isinstance(prompts[0][0], dict))
     ), "prompts must be a list of str or a list of list of dict"
     if isinstance(prompts[0], str):
-        pass
+        if "<|im_start|>" not in prompts[0] and _requires_chatml(model_name):
+            # requires chatml
+            prompts = [[{"role": "user", "content": prompt}] for prompt in prompts]
+            prompts = [_chatml_to_prompt(prompt) for prompt in prompts]
     else:
         prompts = [_chatml_to_prompt(prompt) for prompt in prompts]
 
@@ -362,7 +365,7 @@ def _openai_completion_helper(
 def _requires_chatml(model: str) -> bool:
     """Whether a model requires the ChatML format."""
     # TODO: this should ideally be an OpenAI function... Maybe it already exists?
-    return "turbo" in model or "gpt-4" in model or "chatgpt" in model.lower()
+    return "turbo" in model.lower() or "gpt-4" in model.lower() or "chatgpt" in model.lower() or "gpt-4" in model.lower()
 
 
 def _prompt_to_chatml(prompt: str, start_token: str = "<|im_start|>", end_token: str = "<|im_end|>"):
