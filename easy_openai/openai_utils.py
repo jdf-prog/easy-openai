@@ -202,6 +202,10 @@ def openai_completions(
         # OpenAI API uses model instead of engine
         kwargs = dict(n=1, model=model_name, is_chat=is_chat,
                       use_cache=use_cache, **decoding_kwargs)
+    
+    if use_cache:
+        kwargs["cache_base"] = cache_base
+        kwargs["cache_base_path"] = cache_base_path
     logging.warning(f"Kwargs to completion: {kwargs}")
 
     with Timer() as t:
@@ -250,6 +254,8 @@ def _openai_completion_helper(
     top_p: Optional[float] = 1.0,
     temperature: Optional[float] = 0.7,
     use_cache: bool = True,
+    cache_base: Optional[dict] = None,
+    cache_base_path: Optional[str] = None,
     **kwargs,
 ):
 
