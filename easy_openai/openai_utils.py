@@ -206,7 +206,7 @@ def openai_completions(
     if use_cache:
         kwargs["cache_base"] = cache_base
         kwargs["cache_base_path"] = cache_base_path
-    // logging.warning(f"Kwargs to completion: {kwargs}")
+    # logging.warning(f"Kwargs to completion: {kwargs}")
 
     with Timer() as t:
         if num_procs == 1:
