@@ -467,7 +467,7 @@ def _get_price_per_token(model):
         return (
             0.03 / 1000
         )  # that's not completely true because decoding is 0.06 but close enough given that most is context
-    elif "gpt-3.5-turbo" in model.lower() or 'chatgpt' in model.lower():
+    elif "gpt-3.5-turbo" in model.lower() or 'chatgpt' in model.lower() or "gpt-35-turbo" in model.lower():
         return 0.002 / 1000
     elif "text-davinci-003" in model:
         return 0.02 / 1000
