@@ -59,6 +59,7 @@ def openai_completions(
     num_procs: Optional[int] = OPENAI_MAX_CONCURRENCY,
     batch_size: Optional[int] = None,
     use_cache: bool = True,
+    return_json: bool = False,
     **decoding_kwargs,
 ) -> dict[str, list]:
     r"""Get openai completions for the given prompts. Allows additional parameters such as tokens to avoid and
@@ -90,6 +91,9 @@ def openai_completions(
 
     use_cache : bool, optional
         Whether to use cache to save the query results in case of multiple queries.
+        
+    return_json : bool
+        Whether to ask chatGPT to return json formatted string or not
 
     decoding_kwargs :
         Additional kwargs to pass to `openai.Completion` or `openai.ChatCompletion`.
@@ -256,6 +260,7 @@ def _openai_completion_helper(
     use_cache: bool = True,
     cache_base: Optional[dict] = None,
     cache_base_path: Optional[str] = None,
+    return_json: bool = False,
     **kwargs,
 ):
 
@@ -299,14 +304,20 @@ def _openai_completion_helper(
             try:
                 if is_chat:
                     # print(curr_kwargs)
-                    completion_batch = client.chat.completions.create(messages=to_query_prompt_batch[0], **curr_kwargs)
+                    if return_json:
+                        completion_batch = client.chat.completions.create(messages=to_query_prompt_batch[0], response_format={ "type": "json_object" }, **curr_kwargs)
+                    else:
+                        completion_batch = client.chat.completions.create(messages=to_query_prompt_batch[0], **curr_kwargs)
 
                     choices = completion_batch.choices
                     for choice in choices:
                         assert choice.message.role == "assistant"
 
                 else:
-                    completion_batch = client.completions.create(prompt=to_query_prompt_batch, **curr_kwargs)
+                    if return_json:
+                        completion_batch = client.completions.create(prompt=to_query_prompt_batch, response_format={ "type": "json_object" }, **curr_kwargs)
+                    else:
+                        completion_batch = client.completions.create(prompt=to_query_prompt_batch, **curr_kwargs)
                     choices = completion_batch.choices
 
                 batch_avg_tokens = completion_batch.usage.total_tokens / len(prompt_batch)
