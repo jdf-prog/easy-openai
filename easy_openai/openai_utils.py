@@ -213,7 +213,7 @@ def openai_completions(
     # logging.warning(f"Kwargs to completion: {kwargs}")
 
     with Timer() as t:
-        if num_procs == 1:
+        if num_procs == 1 or n_examples == 1:
             completions = [
                 _openai_completion_helper(prompt_batch, **kwargs)
                 for prompt_batch in tqdm.tqdm(prompt_batches, desc="prompt_batches")
