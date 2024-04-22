@@ -216,7 +216,7 @@ def openai_completions(
         if num_procs == 1 or n_examples == 1:
             completions = [
                 _openai_completion_helper(prompt_batch, **kwargs)
-                for prompt_batch in tqdm.tqdm(prompt_batches, desc="prompt_batches")
+                for prompt_batch in tqdm.tqdm(prompt_batches, desc="prompt_batches", total=len(prompt_batches), disable=len(prompt_batches) == 1)
             ]
         else:
             with multiprocessing.Pool(num_procs) as p:
