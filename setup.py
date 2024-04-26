@@ -11,6 +11,7 @@ setup(
     install_requires=[
         "openai",
         "numpy",
-        "tiktoken"
+        "tiktoken",
+        "pillow"
     ],
 )

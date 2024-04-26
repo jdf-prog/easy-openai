@@ -8,14 +8,18 @@ import multiprocessing
 import random
 import time
 import hashlib
-from typing import Optional, Sequence
-from pathlib import Path
-import numpy as np
+import base64
 import openai
-from openai import OpenAI, AzureOpenAI
+import numpy as np
 import tiktoken
 import tqdm
+from typing import Optional, Sequence
+from pathlib import Path
+from openai import OpenAI, AzureOpenAI
 from typing import Optional, Sequence, Union
+from mimetypes import guess_type
+from io import BytesIO
+from PIL import Image
 
 __all__ = ["openai_completions"]
 tiktoken.model.MODEL_TO_ENCODING['ChatGPT'] = tiktoken.model.MODEL_TO_ENCODING['gpt-3.5-turbo']
@@ -278,6 +282,7 @@ def _openai_completion_helper(
     # set api base
     client_kwargs["base_url"] = base_url = openai_api_base if openai_api_base is not None else DEFAULT_OPENAI_API_BASE
 
+    print(client_kwargs)
     client = CLIENT_CLASS(**client_kwargs)
     
     # copy shared_kwargs to avoid modifying it
@@ -423,8 +428,7 @@ def _prompt_to_chatml(prompt: str, start_token: str = "<|im_start|>", end_token:
     for p in prompt.split("<|im_start|>")[1:]:
         newline_splitted = p.split("\n", 1)
         role = newline_splitted[0].strip()
-        content = newline_splitted[1].split(end_token, 1)[0].strip()
-
+        content = eval(newline_splitted[1].split(end_token, 1)[0].strip())
         if role.startswith("system") and role != "system":
             # based on https://github.com/openai/openai-cookbook/blob/main/examples
             # /How_to_format_inputs_to_ChatGPT_models.ipynb
@@ -439,6 +443,33 @@ def _prompt_to_chatml(prompt: str, start_token: str = "<|im_start|>", end_token:
 
     return message
 
+# Function to encode a local image into data URL 
+def local_image_to_data_url(image:Union[str, Image.Image, Path]) -> str:
+    if isinstance(image, Path) or isinstance(image, str):
+        image_path = image
+        # Guess the MIME type of the image based on the file extension
+        mime_type, _ = guess_type(image_path)
+        if mime_type is None:
+            mime_type = 'application/octet-stream'  # Default MIME type if none is found
+
+        # Read and encode the image file
+        with open(image_path, "rb") as image_file:
+            base64_encoded_data = base64.b64encode(image_file.read()).decode('utf-8')
+    elif isinstance(image, Image.Image):
+        dummy_path = f"temp.{image_path.format}"
+        mime_type, _ = guess_type(dummy_path)
+        if mime_type is None:
+            mime_type = 'application/octet-stream'
+        # encode the image
+        with BytesIO() as output:
+            image.save(output, format=image.format)
+            base64_encoded_data = base64.b64encode(output.getvalue()).decode('utf-8')
+    else:
+        raise ValueError("image must be a path to a local image file or a PIL Image object")
+
+    # Construct the data URL
+    return f"data:{mime_type};base64,{base64_encoded_data}"
+
 
 def _chatml_to_prompt(message: Sequence[dict], start_token: str = "<|im_start|>", end_token: str = "<|im_end|>"):
     r"""Convert a ChatML message to a text prompt
@@ -450,6 +481,10 @@ def _chatml_to_prompt(message: Sequence[dict], start_token: str = "<|im_start|>"
     ...     {'content': 'Knock knock.', 'role': 'system', 'name': 'example_user'},
     ...     {'content': "Who's there?", 'role': 'system', 'name': 'example_assistant'},
     ...     {'content': 'Orange.', 'role': 'user'}
+    ...     {'content': [
+                {"type": "text", "text": "What's in the image?"},
+                {"type": "image_url", "image_url": "https://example.com/image.jpg"}
+            ]}
     ... ]
     >>> _chatml_to_prompt(message)
     '<|im_start|>system\nYou are a helpful assistant.\n<|im_end|>\n<|im_start|>system name=example_user\nKnock knock.\n<|im_end|>\n<|im_start|>system name=example_assistant\nWho\'s there?\n<|im_end|>\n<|im_start|>user\nOrange.\n<|im_end|>'
@@ -460,6 +495,33 @@ def _chatml_to_prompt(message: Sequence[dict], start_token: str = "<|im_start|>"
         name = m.get("name", None)
         if name is not None:
             role += f" name={name}"
+        if isinstance(m["content"], list):
+            for content in m["content"]:
+                if content["type"] == "image_url":
+                    if isinstance(content["image_url"], str):
+                        content['image_url'] = {
+                            "url": local_image_to_data_url(content["image_url"])
+                        }
+                    elif isinstance(content["image_url"], dict):
+                        assert isinstance(content["image_url"]["url"], str), "image_url must be a string"
+                        content["image_url"]["url"] = local_image_to_data_url(content["image_url"]["url"])
+                    else:
+                        raise ValueError("image_url must be a string or a dictionary")
+                elif content["type"] == "image":
+                    if isinstance(content["image"], str):
+                        content['type'] = 'image_url'
+                        content['image_url'] = {"url": local_image_to_data_url(content["image"])}
+                        del content["image"]
+                    elif isinstance(content["image"], dict):
+                        assert isinstance(content["image"]["url"], str), "image must be a string"
+                        content['type'] = 'image_url'
+                        content['image_url'] = {}
+                        content["image_url"]["url"] = local_image_to_data_url(content["image"]["url"])
+                        del content["image"]
+                elif content["type"] == "text":
+                    pass
+                else:
+                    raise ValueError(f"Unknown content type {content['type']} in message.")
         prompt += f"<|im_start|>{role}\n{m['content']}\n<|im_end|>\n"
     return prompt
 
@@ -486,6 +548,7 @@ def _get_price_per_token(model):
         logging.warning(
             f"Unknown model {model} for computing price per token.")
         return np.nan
+
 
 
 class Timer:
