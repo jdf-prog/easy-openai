@@ -447,7 +447,7 @@ def _prompt_to_chatml(prompt: str, start_token: str = "<|im_start|>", end_token:
 
 # Function to encode a local image into data URL 
 def local_image_to_data_url(image:Union[str, Image.Image, Path]) -> str:
-    if isinstance(image, Path) or isinstance(image, str):
+    if isinstance(image, Path) and image.exists() or isinstance(image, str) and os.path.exists(image):
         image_path = image
         # Guess the MIME type of the image based on the file extension
         mime_type, _ = guess_type(image_path)
@@ -457,6 +457,8 @@ def local_image_to_data_url(image:Union[str, Image.Image, Path]) -> str:
         # Read and encode the image file
         with open(image_path, "rb") as image_file:
             base64_encoded_data = base64.b64encode(image_file.read()).decode('utf-8')
+        return f"data:{mime_type};base64,{base64_encoded_data}"
+        
     elif isinstance(image, Image.Image):
         dummy_path = f"temp.{image_path.format}"
         mime_type, _ = guess_type(dummy_path)
@@ -466,11 +468,11 @@ def local_image_to_data_url(image:Union[str, Image.Image, Path]) -> str:
         with BytesIO() as output:
             image.save(output, format=image.format)
             base64_encoded_data = base64.b64encode(output.getvalue()).decode('utf-8')
+        return f"data:{mime_type};base64,{base64_encoded_data}"
+    elif isinstance(image, str) and (image.startswith("http") or image.startswith("data:")):
+        return image
     else:
-        raise ValueError("image must be a path to a local image file or a PIL Image object")
-
-    # Construct the data URL
-    return f"data:{mime_type};base64,{base64_encoded_data}"
+        raise ValueError("Image must be a path to a local image, an image object, or a URL.")
 
 
 def _chatml_to_prompt(message: Sequence[dict], start_token: str = "<|im_start|>", end_token: str = "<|im_end|>"):
