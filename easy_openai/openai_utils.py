@@ -428,7 +428,10 @@ def _prompt_to_chatml(prompt: str, start_token: str = "<|im_start|>", end_token:
     for p in prompt.split("<|im_start|>")[1:]:
         newline_splitted = p.split("\n", 1)
         role = newline_splitted[0].strip()
-        content = eval(newline_splitted[1].split(end_token, 1)[0].strip())
+        try:
+            content = eval(newline_splitted[1].split(end_token, 1)[0].strip())
+        except SyntaxError:
+            content = newline_splitted[1].split(end_token, 1)[0].strip()
         if role.startswith("system") and role != "system":
             # based on https://github.com/openai/openai-cookbook/blob/main/examples
             # /How_to_format_inputs_to_ChatGPT_models.ipynb
