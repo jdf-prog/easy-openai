@@ -282,7 +282,6 @@ def _openai_completion_helper(
     # set api base
     client_kwargs["base_url"] = base_url = openai_api_base if openai_api_base is not None else DEFAULT_OPENAI_API_BASE
 
-    print(client_kwargs)
     client = CLIENT_CLASS(**client_kwargs)
     
     # copy shared_kwargs to avoid modifying it
