@@ -196,7 +196,7 @@ def openai_completions(
         num_procs = num_procs or 1
         batch_size = batch_size or 10
 
-    logging.warning(f"Kwargs to completion: {decoding_kwargs}")
+    # logging.warning(f"Kwargs to completion: {decoding_kwargs}"
     n_batches = int(math.ceil(n_examples / batch_size))
 
     prompt_batches = [
@@ -234,7 +234,8 @@ def openai_completions(
                         disable=len(prompt_batches) == 1,
                     )
                 )
-    logging.warning(f"Completed {n_examples} examples in {t}.")
+    if n_examples > 1:
+        logging.warning(f"Completed {n_examples} examples in {t}.")
 
     # flatten the list and select only the text
     completions_text = [completion['content']
@@ -460,7 +461,7 @@ def local_image_to_data_url(image:Union[str, Image.Image, Path]) -> str:
         return f"data:{mime_type};base64,{base64_encoded_data}"
         
     elif isinstance(image, Image.Image):
-        dummy_path = f"temp.{image_path.format}"
+        dummy_path = f"temp.{image.format}"
         mime_type, _ = guess_type(dummy_path)
         if mime_type is None:
             mime_type = 'application/octet-stream'
@@ -473,7 +474,6 @@ def local_image_to_data_url(image:Union[str, Image.Image, Path]) -> str:
         return image
     else:
         raise ValueError("Image must be a path to a local image, an image object, or a URL.")
-
 
 def _chatml_to_prompt(message: Sequence[dict], start_token: str = "<|im_start|>", end_token: str = "<|im_end|>"):
     r"""Convert a ChatML message to a text prompt
@@ -507,8 +507,10 @@ def _chatml_to_prompt(message: Sequence[dict], start_token: str = "<|im_start|>"
                             "url": local_image_to_data_url(content["image_url"])
                         }
                     elif isinstance(content["image_url"], dict):
-                        assert isinstance(content["image_url"]["url"], str), "image_url must be a string"
-                        content["image_url"]["url"] = local_image_to_data_url(content["image_url"]["url"])
+                        if isinstance(content["image_url"]["url"], str) or isinstance(content["image_url"]["url"], Image.Image):
+                            content["image_url"]["url"] = local_image_to_data_url(content["image_url"]["url"])
+                        else:
+                            raise ValueError("image_url must be a string or a Image object")
                     else:
                         raise ValueError("image_url must be a string or a dictionary")
                 elif content["type"] == "image":
