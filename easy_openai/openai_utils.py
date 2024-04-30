@@ -343,7 +343,6 @@ def _openai_completion_helper(
                     else:
                         logging.warning(
                             f"Unknown error {e}. \n It's likely a rate limit so we are retrying...")
-                        logging.warning(prompt_batch)
                     if openai_organization_ids is not None and len(openai_organization_ids) > 1:
                         client_kwargs["organization"] = organization = random.choice(
                             [o for o in openai_organization_ids if o != openai.organization]
