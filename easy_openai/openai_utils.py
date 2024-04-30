@@ -13,6 +13,7 @@ import openai
 import numpy as np
 import tiktoken
 import tqdm
+from collections import namedtuple
 from typing import Optional, Sequence
 from pathlib import Path
 from openai import OpenAI, AzureOpenAI
@@ -340,6 +341,14 @@ def _openai_completion_helper(
                     if "rate limit" in str(e).lower():
                         pass
                         # print(e)
+                    elif "ResponsibleAIPolicyViolation" in str(e):
+                        logging.error("Responsible AI Policy Violation, return empty completions.")
+                        logging.error("Details: ", e)
+                        Choice = namedtuple("Choice", ["message"])
+                        Message = namedtuple("Message", ["content"])
+                        choices = [Choice(message=Message(content=""))] * len(to_query_prompt_batch)
+                        batch_avg_tokens = 0
+                        break
                     else:
                         logging.warning(
                             f"Unknown error {e}. \n It's likely a rate limit so we are retrying...")
