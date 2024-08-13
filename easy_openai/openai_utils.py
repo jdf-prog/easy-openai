@@ -550,7 +550,9 @@ def _string_to_dict(to_convert):
 
 def _get_price_per_token(model):
     """Returns the price per token for a given model"""
-    if "gpt-4" in model:
+    if "gpt-4o-mini" in model:
+        return 0.4 / 1e6
+    elif "gpt-4" in model:
         return (
             0.03 / 1000
         )  # that's not completely true because decoding is 0.06 but close enough given that most is context
